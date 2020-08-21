@@ -379,22 +379,37 @@ class LaravelDebugbar extends DebugBar
 
                 $db->getEventDispatcher()->listen(
                     'connection.*.beganTransaction',
-                    function ($event, $params) use ($queryCollector) {
-                        $queryCollector->collectTransactionEvent('Begin Transaction', $params[0]);
+                    function ($transaction) use ($queryCollector) {
+                        if($transaction instanceof \Illuminate\Database\Events\TransactionBeginning) {
+                            $connection = $transaction->connection;
+                        } else {
+                            $connection = $transaction;
+                        }
+                        $queryCollector->collectTransactionEvent('Begin Transaction', $connection);
                     }
                 );
 
                 $db->getEventDispatcher()->listen(
                     'connection.*.committed',
-                    function ($event, $params) use ($queryCollector) {
-                        $queryCollector->collectTransactionEvent('Commit Transaction', $params[0]);
+                    function ($transaction) use ($queryCollector) {
+                        if($transaction instanceof \Illuminate\Database\Events\TransactionCommitted) {
+                            $connection = $transaction->connection;
+                        } else {
+                            $connection = $transaction;
+                        }
+                        $queryCollector->collectTransactionEvent('Commit Transaction', $connection);
                     }
                 );
 
                 $db->getEventDispatcher()->listen(
                     'connection.*.rollingBack',
-                    function ($event, $params) use ($queryCollector) {
-                        $queryCollector->collectTransactionEvent('Rollback Transaction', $params[0]);
+                    function ($connection) use ($queryCollector) {
+                        if($transaction instanceof \Illuminate\Database\Events\TransactionRolledBack) {
+                            $connection = $transaction->connection;
+                        } else {
+                            $connection = $transaction;
+                        }
+                        $queryCollector->collectTransactionEvent('Rollback Transaction', $connection);
                     }
                 );
             } catch (\Exception $e) {
@@ -463,23 +478,23 @@ class LaravelDebugbar extends DebugBar
             $this->addCollector(new FilesCollector($app));
         }
 
-        if ($this->shouldCollect('auth', false)) {
-            try {
-                $guards = $this->app['config']->get('auth.guards', []);
-                $authCollector = new MultiAuthCollector($app['auth'], $guards);
+         if ($this->shouldCollect('auth', false)) {
+             try {
+                 $guards = $this->app['config']->get('auth.guards', []);
+                 $authCollector = new MultiAuthCollector($app['auth'], $guards);
 
-                $authCollector->setShowName(
-                    $this->app['config']->get('debugbar.options.auth.show_name')
-                );
-                $this->addCollector($authCollector);
-            } catch (\Exception $e) {
-                $this->addThrowable(
-                    new Exception(
-                        'Cannot add AuthCollector to Laravel Debugbar: ' . $e->getMessage(), $e->getCode(), $e
-                    )
-                );
-            }
-        }
+                 $authCollector->setShowName(
+                     $this->app['config']->get('debugbar.options.auth.show_name')
+                 );
+                 $this->addCollector($authCollector);
+             } catch (\Exception $e) {
+                 $this->addThrowable(
+                     new Exception(
+                         'Cannot add AuthCollector to Laravel Debugbar: ' . $e->getMessage(), $e->getCode(), $e
+                     )
+                 );
+             }
+         }
 
         if ($this->shouldCollect('gate', false)) {
             try {
