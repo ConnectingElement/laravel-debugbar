@@ -403,7 +403,7 @@ class LaravelDebugbar extends DebugBar
 
                 $db->getEventDispatcher()->listen(
                     'connection.*.rollingBack',
-                    function ($connection) use ($queryCollector) {
+                    function ($transaction) use ($queryCollector) {
                         if($transaction instanceof \Illuminate\Database\Events\TransactionRolledBack) {
                             $connection = $transaction->connection;
                         } else {
